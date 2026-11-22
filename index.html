@@ -170,10 +170,8 @@ main .wrap{padding-block:14px 120px;display:flex;flex-direction:column;gap:14px}
 .grp-h{font-size:13px;font-weight:700;color:var(--sky-deep);display:flex;justify-content:space-between}
 .tcard{display:flex;flex-direction:column;gap:6px;align-items:flex-start;border:1px solid var(--sky-line);border-radius:12px;padding:10px 12px}
 .tc-h{display:flex;align-items:center;gap:8px;width:100%;min-width:0;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;cursor:grab}
-.sorting .alt{display:none}
-.sorting .tcard{padding-block:8px}
-.tcard.lifted{position:relative;z-index:3;background:var(--card);border-color:var(--sky);box-shadow:0 10px 24px rgba(22,119,176,.28);transform:scale(1.03)}
-@media (prefers-reduced-motion:no-preference){.tcard{transition:transform .12s,box-shadow .12s}}
+.tcard.lifted{position:relative;z-index:3;background:var(--card);border-color:var(--sky);box-shadow:0 12px 28px rgba(22,119,176,.3);transform:scale(1.02);will-change:transform}
+.tcard.lifted .alt{pointer-events:none}
 .tc-h b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tc-h small{flex:1;color:var(--mute);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tc-h .state{font-size:11px;font-weight:700;border-radius:6px;padding:1px 7px;white-space:nowrap;font-variant-numeric:tabular-nums}
@@ -1083,13 +1081,12 @@ let drag = null;
 function beginDrag(card, fingerY) {
   const grp = card.closest('.tgrp');
   document.activeElement?.blur?.();
-  const wrap = card.closest('.card');
-  wrap.classList.add('sorting'); card.classList.add('lifted');
+  card.classList.add('lifted');
   navigator.vibrate?.(15);
-  // 入力欄をたたんだ後、持ち上げたカードが指の下に来るようにスクロールを合わせる
-  const r = card.getBoundingClientRect();
-  window.scrollBy(0, r.top + r.height / 2 - fingerY);
+  // カードは入力欄ごとそのまま。指に合わせて動かし、他のカードの中央を越えたら入れ替える
+  const y0 = fingerY, sy0 = window.scrollY, ot0 = card.offsetTop;
   drag = { card, grp, y: fingerY, raf: null };
+  const follow = () => { card.style.transform = `translateY(${(drag.y - y0) + (window.scrollY - sy0) - (card.offsetTop - ot0)}px) scale(1.02)`; };
   const move = y => {
     drag.y = y;
     const sibs = [...grp.querySelectorAll('.tcard')].filter(c => c !== card);
@@ -1097,6 +1094,7 @@ function beginDrag(card, fingerY) {
     for (const c of sibs) { const b = c.getBoundingClientRect(); if (y < b.top + b.height / 2) { before = c; break; } }
     if (before) { if (card.nextElementSibling !== before) grp.insertBefore(card, before); }
     else { const last = sibs[sibs.length - 1]; if (last && last.nextElementSibling !== card) last.after(card); }
+    follow();
   };
   // 画面の端に近づいたら自動でスクロール
   const tick = () => {
@@ -1110,7 +1108,7 @@ function beginDrag(card, fingerY) {
   const onTouch = e => { e.preventDefault(); move(e.touches[0].clientY); };
   const onMouse = e => move(e.clientY);
   const end = () => {
-    cancelAnimationFrame(drag.raf);
+    cancelAnimationFrame(drag.raf); card.style.transform = '';
     document.removeEventListener('touchmove', onTouch); document.removeEventListener('mousemove', onMouse);
     document.removeEventListener('touchend', end); document.removeEventListener('touchcancel', end); document.removeEventListener('mouseup', end);
     const order = [...app.querySelectorAll('.tgrp .tcard')].map(c => c.dataset.cid);
