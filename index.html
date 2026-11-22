@@ -21,7 +21,7 @@
   --st-dcheki-bg:#d6f0f4;--st-dcheki:#0f6f80;--st-dvisit-bg:#f1effb;--st-dvisit:#6d64a8;--st-shame-bg:#dcf3ee; --st-shame:#1a7f6b; --st-bira-bg:#eef2f5; --st-bira:#5f7584;
   --display:"Zen Maru Gothic","Hiragino Maru Gothic ProN",sans-serif;
   --body:"Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",sans-serif;
-  --altfs:clamp(11px,calc((min(100vw,560px) - 112px) / 25),16px);
+  --altfs:clamp(11px,calc((min(100vw,560px) - 112px) / 22),16px);
   color-scheme:light;
 }
 html,body{height:100%}
@@ -169,7 +169,11 @@ main .wrap{padding-block:14px 120px;display:flex;flex-direction:column;gap:14px}
 .grp{display:flex;flex-direction:column;gap:6px}
 .grp-h{font-size:13px;font-weight:700;color:var(--sky-deep);display:flex;justify-content:space-between}
 .tcard{display:flex;flex-direction:column;gap:6px;align-items:flex-start;border:1px solid var(--sky-line);border-radius:12px;padding:10px 12px}
-.tc-h{display:flex;align-items:center;gap:8px;width:100%;min-width:0}
+.tc-h{display:flex;align-items:center;gap:8px;width:100%;min-width:0;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;cursor:grab}
+.sorting .alt{display:none}
+.sorting .tcard{padding-block:8px}
+.tcard.lifted{position:relative;z-index:3;background:var(--card);border-color:var(--sky);box-shadow:0 10px 24px rgba(22,119,176,.28);transform:scale(1.03)}
+@media (prefers-reduced-motion:no-preference){.tcard{transition:transform .12s,box-shadow .12s}}
 .tc-h b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tc-h small{flex:1;color:var(--mute);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tc-h .state{font-size:11px;font-weight:700;border-radius:6px;padding:1px 7px;white-space:nowrap;font-variant-numeric:tabular-nums}
@@ -184,12 +188,21 @@ main .wrap{padding-block:14px 120px;display:flex;flex-direction:column;gap:14px}
 .acc-h .chev{color:var(--mute);transition:transform .15s}
 .acc.open .chev{transform:rotate(90deg)}
 .acc-b{padding:4px 12px 12px;display:flex;flex-direction:column;gap:8px;align-items:flex-start}
-.alt{font-family:var(--body);font-size:var(--altfs);line-height:1.8;width:calc(25em + 1px);height:calc(1.8em * 6);overflow-y:auto;box-sizing:content-box;padding:6px 8px;border:1.5px solid var(--sky-line);border-radius:8px;resize:none;word-break:break-all;line-break:anywhere;overflow-wrap:anywhere;
+.alt{font-family:var(--body);font-size:var(--altfs);line-height:1.8;width:calc(22em + 1px);height:calc(1.8em * 6);overflow-y:auto;box-sizing:content-box;padding:6px 8px;border:1.5px solid var(--sky-line);border-radius:8px;resize:none;word-break:break-all;line-break:anywhere;overflow-wrap:anywhere;
   background-color:var(--card);background-image:repeating-linear-gradient(to bottom,transparent 0,transparent calc(1.8em - 1px),var(--sky-line) calc(1.8em - 1px),var(--sky-line) 1.8em);background-attachment:local;background-position:0 6px}
 .alt:focus{border-color:var(--sky);outline:none}
 .altbar{display:flex;align-items:center;gap:10px;width:100%;font-size:12px;color:var(--mute);font-variant-numeric:tabular-nums}
 .altbar .sp{flex:1}
 .altbar .altcount.over{color:var(--warn);font-weight:700}
+.crow{display:flex;align-items:center;gap:10px;font-variant-numeric:tabular-nums}
+.crow .cbtn{min-width:9.5em;text-align:center;font-weight:700;color:var(--sky-deep)}
+.crow .cbtn:disabled{color:var(--mute);opacity:.6}
+.cmeta{font-size:13px;color:var(--mute)}
+.crow.multi{flex-direction:column;align-items:stretch;gap:6px;background:var(--bg);border-radius:10px;padding:8px 10px}
+.crow-h{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
+.crow-b{display:flex;flex-wrap:wrap;gap:6px}
+.crow-b .cbtn{display:flex;flex-direction:column;align-items:center;min-width:0;flex:1}
+.crow-b small{font-size:11px;color:var(--mute);font-weight:400}
 .copyparts{display:flex;flex-direction:column;gap:6px;background:var(--bg);border-radius:10px;padding:10px}
 .copyparts .cpr{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px;font-variant-numeric:tabular-nums}
 .note{white-space:pre-wrap}
@@ -296,14 +309,14 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 
 function liveDate(now = new Date()) { const d = new Date(now); if (d.getHours() < 6) d.setDate(d.getDate() - 1); return ymd(d); }
 function daysAgo(n) { const d = new Date(); d.setDate(d.getDate() - n); return ymd(d); }
 
-const emptyDb = () => ({ sample: false, customers: [], sessions: [], entries: [], thanks: {}, venues: [], settings: {} });
+const emptyDb = () => ({ sample: false, customers: [], sessions: [], entries: [], thanks: {}, orders: {}, venues: [], settings: {} });
 let db = emptyDb();
 
 // --- Firestore 同期 ---
 // 画面側は今までどおり db を書き換えて save() を呼ぶだけ。
 // save() は少し待ってから、前回送った内容との差分だけを Firestore に書き込む（オフライン時は端末に保存され、通信が戻ると自動送信）。
 let FB = null, user = null, unsubs = [], ready = false, flushTimer = null, pendingRender = false, firstSnaps = new Set();
-const COLS = ['customers', 'sessions', 'entries', 'thanks', 'meta'];
+const COLS = ['customers', 'sessions', 'entries', 'thanks', 'orders', 'meta'];
 const synced = Object.fromEntries(COLS.map(c => [c, new Map()]));
 const stable = v => JSON.stringify(v, (k, x) => x && typeof x === 'object' && !Array.isArray(x) ? Object.fromEntries(Object.keys(x).sort().map(key => [key, x[key]])) : x);
 const clean = v => JSON.parse(JSON.stringify(v));
@@ -313,6 +326,7 @@ function toDocs() {
     sessions: new Map(db.sessions.map(x => [x.id, x])),
     entries: new Map(db.entries.map(x => [x.id, x])),
     thanks: new Map(Object.entries(db.thanks).map(([k, text]) => { const [date, cid] = k.split('|'); return [`${date}_${cid}`, { date, cid, text }]; })),
+    orders: new Map(Object.entries(db.orders || {}).map(([date, cids]) => [date, { date, cids }])),
     meta: new Map([['app', { venues: db.venues, settings: db.settings }]]),
   };
 }
@@ -335,12 +349,14 @@ window.addEventListener('pagehide', flush);
 function applyRemote(col, id, data) {
   if (col === 'meta') { db.venues = data.venues || []; db.settings = data.settings || {}; return; }
   if (col === 'thanks') { db.thanks[`${data.date}|${data.cid}`] = data.text || ''; return; }
+  if (col === 'orders') { db.orders[data.date] = data.cids || []; return; }
   const arr = db[col], i = arr.findIndex(x => x.id === id);
   if (i >= 0) arr[i] = data; else arr.push(data);
 }
 function removeRemote(col, id) {
   if (col === 'meta') return;
   if (col === 'thanks') { const [date, cid] = id.split('_'); delete db.thanks[`${date}|${cid}`]; return; }
+  if (col === 'orders') { delete db.orders[id]; return; }
   db[col] = db[col].filter(x => x.id !== id);
 }
 function onSnap(col, snap) {
@@ -350,7 +366,7 @@ function onSnap(col, snap) {
     if (ch.type === 'removed') { if (synced[col].has(id)) { synced[col].delete(id); removeRemote(col, id); changed = true; } return; }
     const data = ch.doc.data(), j = stable(data);
     if (synced[col].get(id) === j) return; // 自分が書いた内容の折り返し
-    synced[col].set(id, j); applyRemote(col, id, col === 'meta' ? data : { ...data, ...(col === 'thanks' ? {} : { id }) }); changed = true;
+    synced[col].set(id, j); applyRemote(col, id, ['meta', 'thanks', 'orders'].includes(col) ? data : { ...data, id }); changed = true;
   });
   if (!ready) { firstSnaps.add(col); if (firstSnaps.size === COLS.length) { ready = true; render(); } return; }
   if (changed) scheduleRender();
@@ -422,10 +438,11 @@ function venueStats() {
   });
   return [...m.values()];
 }
-// ALT用の行数（全角25文字＝1行、半角は0.5文字で計算）
+// ALT用の行数（全角22文字＝1行、半角は0.5文字で計算）
+const ALT_COLS = 22;
 function altLines(t) {
   if (!t) return 0;
-  return t.split('\n').reduce((n, p) => { let w = 0; for (const ch of p) w += /[\x20-\x7e｡-ﾟ]/.test(ch) ? 0.5 : 1; return n + Math.max(1, Math.ceil(w / 25)); }, 0);
+  return t.split('\n').reduce((n, p) => { let w = 0; for (const ch of p) w += /[\x20-\x7e｡-ﾟ]/.test(ch) ? 0.5 : 1; return n + Math.max(1, Math.ceil(w / ALT_COLS)); }, 0);
 }
 
 // アイコン：画像があれば画像、なければ頭文字（色は名前ごとに固定）
@@ -659,12 +676,12 @@ function renderEventView() {
           <details class="tview"><summary>${avatar(c, 'sm')}<span class="t"><b>${esc(c.name)}</b><small>${esc(p.summary)}</small></span><span class="state ${t ? 'done' : 'todo'}">${t ? altLines(t) + '行' : '未記入'}</span></summary>
           ${t ? `<p>${esc(t)}</p>` : '<p class="hint">まだ書いていません。右上のペンから書けます。</p>'}</details>`; }).join('')}
       </div>`).join('')}
-      ${copyBlock(groups, d, evCopy)}
+      ${copyBlock(groups, d)}
     </div>` : ''}`;
   on('evback', 'click', () => { evDetail = null; render(); window.scrollTo(0, 0); });
   on('evedit', 'click', () => { goInput(d); inp.fromView = true; render(); window.scrollTo(0, 0); });
   onAll('.evp', b => { detail = b.dataset.cid; dEdit = null; dDel = false; render(); window.scrollTo(0, 0); });
-  bindCopy(d, evCopy, renderEventView);
+  bindCopy(d);
 }
 
 // ===== 入力 =====
@@ -754,7 +771,7 @@ function renderInput() {
   const steps = `<div class="steps">
     <button class="stp ${step === 'event' ? 'on' : ''}" data-step="event"><span class="no">1</span><span class="tt">公演</span><small class="${evDone ? 'ok' : ''}">${evDone ? '✓' : '未設定'}</small></button>
     <button class="stp ${step === 'fans' ? 'on' : ''}" data-step="fans"><span class="no">2</span><span class="tt">ファン</span><small class="${mismatch ? 'ng' : ''}">${ents.length}人${mismatch ? '・ずれ' : ''}</small></button>
-    <button class="stp ${step === 'thanks' ? 'on' : ''}" data-step="thanks" ${tpeople.length ? '' : 'disabled'}><span class="no">3</span><span class="tt">お礼文</span><small class="${tpeople.length && !todo ? 'ok' : todo ? 'ng' : ''}">${!tpeople.length ? '—' : todo ? `未記入${todo}` : '完了'}</small></button>
+    <button class="stp ${step === 'thanks' ? 'on' : ''}" data-step="thanks" ${tpeople.length ? '' : 'disabled'}><span class="no">3</span><span class="tt">お礼文</span><small id="steptodo" class="${tpeople.length && !todo ? 'ok' : todo ? 'ng' : ''}">${!tpeople.length ? '—' : todo ? `未記入${todo}` : '完了'}</small></button>
   </div>`;
   const summary = step === 'thanks'
     ? `<button class="sumbar" id="toevent"><span>${fmtW(inp.date)}</span><span class="sv">${ss.length > 1 ? ss.map(x => sessName(x)).join(' ／ ') : esc(s.venue || '会場未設定')}</span><span class="pen">✎</span></button>`
@@ -928,7 +945,9 @@ function thanksData(ss, labels) {
       short = ids.length === th.length ? (th.length === 2 ? '両部' : '全公演') : ids.length === 1 ? `${labels[ids[0]]}のみ` : ids.map(id => labels[id]).join('・');
       title = (ids.length === 1 ? labels[ids[0]] : short) + '来てくれた人';
     }
-    return { key, title, short, people: groups.get(key).sort((a, b) => b.units - a.units) };
+    const ord = (db.orders || {})[ss[0]?.date] || [];
+    const pos = cid => { const i = ord.indexOf(cid); return i < 0 ? Infinity : i; };
+    return { key, title, short, people: groups.get(key).sort((a, b) => pos(a.cid) - pos(b.cid) || b.units - a.units) };
   });
 }
 function summarize(es) {
@@ -941,8 +960,9 @@ function renderThanks(ss, labels) {
   if (!all.length) return '';
   const todo = all.filter(p => !(db.thanks[inp.date + '|' + p.cid] || '').trim()).length;
   return `<div class="card">
-    <div class="sec-h"><h2>お礼文</h2><small>${todo ? `未記入 ${todo}人` : 'すべて記入済み'}</small></div>
-    ${groups.map(g => `<div class="grp">${g.title ? `<div class="grp-h"><span>${esc(g.title)}</span><span>${g.people.length}人</span></div>` : ''}
+    <div class="sec-h"><h2>お礼文</h2><small id="todocnt">${todo ? `未記入 ${todo}人` : 'すべて記入済み'}</small></div>
+    <div class="hint">名前を長押しすると並べ替えできます</div>
+    ${groups.map(g => `<div class="grp tgrp" data-g="${g.key}">${g.title ? `<div class="grp-h"><span>${esc(g.title)}</span><span>${g.people.length}人</span></div>` : ''}
       ${g.people.map(p => thanksItem(p)).join('')}</div>`).join('')}
     ${copyBlock(groups)}
   </div>`;
@@ -973,26 +993,28 @@ function splitParts(texts) {
   if (cur) parts.push(cur);
   return parts;
 }
-function copyBlock(groups, date = inp.date, st = inp) {
+function copyBlock(groups, date = inp.date) {
   const units = copyUnits(groups, date);
-  const u = units.find(x => x.key === st.copyUnit);
-  return `<div class="grp" style="border-top:1px solid var(--sky-line);padding-top:12px">
+  const label = n => n === '全て' ? 'すべて' : n;
+  return `<div class="grp copyblk" style="border-top:1px solid var(--sky-line);padding-top:12px">
     <span class="lbl">まとめてコピー（XのALT用）</span>
-    <div class="chips">${units.map(x => `<button class="chip cu ${st.copyUnit === x.key ? 'on' : ''}" data-k="${x.key}" ${x.texts.length ? '' : 'disabled'}>${esc(x.name)}（${x.texts.length}人）</button>`).join('')}</div>
-    ${u ? `<div class="copyparts">
-      <div class="hint">${esc(u.name)}：${u.texts.length}人分・${u.parts.reduce((n, t) => n + clen(t), 0)}文字${u.parts.length > 1 ? `。1000文字を超えるため${u.parts.length}つに分けました` : ''}</div>
-      ${u.parts.map((t, i) => `<div class="cpr"><span>${u.parts.length > 1 ? `${i + 1}つ目 ・ ` : ''}${clen(t)}文字</span><button class="ghost cp" data-i="${i}">コピー</button></div>`).join('')}
-    </div>` : ''}
+    ${units.map(u => {
+      const total = u.parts.reduce((n, t) => n + clen(t), 0), off = !u.texts.length;
+      const meta = `<span class="cmeta">${u.texts.length}人・${total.toLocaleString()}文字</span>`;
+      if (u.parts.length <= 1) return `<div class="crow"><button class="ghost cbtn cp" data-k="${u.key}" data-i="0" ${off ? 'disabled' : ''}>${esc(label(u.name))}コピー</button>${meta}</div>`;
+      return `<div class="crow multi"><div class="crow-h"><b>${esc(label(u.name))}</b>${meta}<span class="hint">1000文字を超えるため${u.parts.length}つに分割</span></div>
+        <div class="crow-b">${u.parts.map((t, i) => `<button class="ghost cbtn cp" data-k="${u.key}" data-i="${i}">${i + 1}つ目をコピー<small>${clen(t)}文字</small></button>`).join('')}</div></div>`;
+    }).join('')}
   </div>`;
 }
-function bindCopy(date, st, rerender) {
+function bindCopy(date) {
   const units = () => copyUnits(thanksData(daySessions(date), sessLabels(date)), date);
-  onAll('.cu', b => {
-    const u = units().find(x => x.key === b.dataset.k); st.copyUnit = u.key;
-    if (u.parts.length === 1) copyText(u.parts[0], `${u.name}をコピーしました`);
-    rerender();
+  onAll('.cp', b => {
+    const u = units().find(x => x.key === b.dataset.k), i = +b.dataset.i;
+    if (!u || !u.parts[i]) return;
+    const name = u.name === '全て' ? 'すべて' : u.name;
+    copyText(u.parts[i], u.parts.length > 1 ? `${name}の${i + 1}つ目をコピーしました` : `${name}をコピーしました`);
   });
-  onAll('.cp', b => { const u = units().find(x => x.key === st.copyUnit); const i = +b.dataset.i; copyText(u.parts[i], u.parts.length > 1 ? `${i + 1}つ目をコピーしました` : 'コピーしました'); });
 }
 function copyText(text, msg = 'コピーしました') {
   const fallback = () => {
@@ -1010,11 +1032,11 @@ function thanksItem(p) {
   return `<div class="tcard" data-cid="${p.cid}">
     <div class="tc-h">${avatar(c, 'sm')}<b>${esc(c.name)}</b><small>${esc(p.summary)}</small>
       <span class="state ${text.trim() ? 'done' : 'todo'}">${text.trim() ? `${lines}行` : '未記入'}</span></div>
-    <textarea class="alt" rows="6" placeholder="${esc(c.name)}さんへ（1行＝全角25文字）">${esc(text)}</textarea>
+    <textarea class="alt" rows="6" placeholder="${esc(c.name)}さんへ（1行＝全角22文字）">${esc(text)}</textarea>
   </div>`;
 }
 function bindThanks() {
-  bindCopy(inp.date, inp, renderInput);
+  bindCopy(inp.date);
   app.querySelectorAll('.tcard').forEach(card => {
     const key = inp.date + '|' + card.dataset.cid;
     const ta = card.querySelector('.alt'), st = card.querySelector('.state');
@@ -1022,13 +1044,85 @@ function bindThanks() {
     const check = e => {
       if (e && e.isComposing) return;
       // 12行を超える入力は受け付けない
-      if (altLines(ta.value) > ALT_MAX_LINES) { const pos = Math.max(0, ta.selectionStart - (ta.value.length - last.length)); ta.value = last; ta.setSelectionRange(pos, pos); toast(`お礼文は${ALT_MAX_LINES}行までです`); return; }
+      const nl = altLines(ta.value);
+      if (nl > ALT_MAX_LINES && nl > altLines(last)) { const pos = Math.max(0, ta.selectionStart - (ta.value.length - last.length)); ta.value = last; ta.setSelectionRange(pos, pos); toast(`お礼文は${ALT_MAX_LINES}行までです`); return; }
       last = ta.value; db.thanks[key] = ta.value; save();
       const n = altLines(ta.value);
       st.textContent = ta.value.trim() ? `${n}行` : '未記入'; st.className = 'state ' + (ta.value.trim() ? 'done' : 'todo');
+      refreshThanksMeta();
     };
     ta.addEventListener('input', check); ta.addEventListener('compositionend', check);
   });
+  bindSort();
+}
+// 入力したその場で、まとめてコピーと未記入数を更新する（画面全体は描き直さない）
+function refreshThanksMeta() {
+  const ss = daySessions(inp.date), groups = thanksData(ss, sessLabels(inp.date)), all = groups.flatMap(g => g.people);
+  const todo = all.filter(p => !(db.thanks[inp.date + '|' + p.cid] || '').trim()).length;
+  const tc = document.getElementById('todocnt'); if (tc) tc.textContent = todo ? `未記入 ${todo}人` : 'すべて記入済み';
+  const sd = document.getElementById('steptodo'); if (sd) { sd.textContent = todo ? `未記入${todo}` : '完了'; sd.className = todo ? 'ng' : 'ok'; }
+  const cb = app.querySelector('.copyblk');
+  if (cb) { cb.outerHTML = copyBlock(groups); bindCopy(inp.date); }
+}
+
+// ===== お礼文の並べ替え：名前を長押し → 持ち上げて上下に動かす =====
+function bindSort() {
+  app.querySelectorAll('.tcard .tc-h').forEach(h => {
+    let timer = null, sx = 0, sy = 0;
+    const start = (x, y) => { sx = x; sy = y; clearTimeout(timer); timer = setTimeout(() => { timer = null; beginDrag(h.closest('.tcard'), y); }, 450); };
+    const cancel = () => { clearTimeout(timer); timer = null; };
+    h.addEventListener('touchstart', e => { if (e.touches.length === 1) start(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
+    h.addEventListener('touchmove', e => { if (timer && Math.hypot(e.touches[0].clientX - sx, e.touches[0].clientY - sy) > 8) cancel(); }, { passive: true });
+    h.addEventListener('touchend', cancel); h.addEventListener('touchcancel', cancel);
+    h.addEventListener('mousedown', e => { if (e.button === 0) start(e.clientX, e.clientY); });
+    h.addEventListener('mouseup', cancel); h.addEventListener('mouseleave', cancel);
+    h.addEventListener('contextmenu', e => e.preventDefault());
+  });
+}
+let drag = null;
+function beginDrag(card, fingerY) {
+  const grp = card.closest('.tgrp');
+  document.activeElement?.blur?.();
+  const wrap = card.closest('.card');
+  wrap.classList.add('sorting'); card.classList.add('lifted');
+  navigator.vibrate?.(15);
+  // 入力欄をたたんだ後、持ち上げたカードが指の下に来るようにスクロールを合わせる
+  const r = card.getBoundingClientRect();
+  window.scrollBy(0, r.top + r.height / 2 - fingerY);
+  drag = { card, grp, y: fingerY, raf: null };
+  const move = y => {
+    drag.y = y;
+    const sibs = [...grp.querySelectorAll('.tcard')].filter(c => c !== card);
+    let before = null;
+    for (const c of sibs) { const b = c.getBoundingClientRect(); if (y < b.top + b.height / 2) { before = c; break; } }
+    if (before) { if (card.nextElementSibling !== before) grp.insertBefore(card, before); }
+    else { const last = sibs[sibs.length - 1]; if (last && last.nextElementSibling !== card) last.after(card); }
+  };
+  // 画面の端に近づいたら自動でスクロール
+  const tick = () => {
+    if (!drag) return;
+    const edge = 90, vh = window.innerHeight;
+    if (drag.y < edge) window.scrollBy(0, -Math.ceil((edge - drag.y) / 6));
+    else if (drag.y > vh - edge - 70) window.scrollBy(0, Math.ceil((drag.y - (vh - edge - 70)) / 6));
+    move(drag.y);
+    drag.raf = requestAnimationFrame(tick);
+  };
+  const onTouch = e => { e.preventDefault(); move(e.touches[0].clientY); };
+  const onMouse = e => move(e.clientY);
+  const end = () => {
+    cancelAnimationFrame(drag.raf);
+    document.removeEventListener('touchmove', onTouch); document.removeEventListener('mousemove', onMouse);
+    document.removeEventListener('touchend', end); document.removeEventListener('touchcancel', end); document.removeEventListener('mouseup', end);
+    const order = [...app.querySelectorAll('.tgrp .tcard')].map(c => c.dataset.cid);
+    db.orders = db.orders || {}; db.orders[inp.date] = order; save();
+    const cid = card.dataset.cid; drag = null;
+    renderInput();
+    app.querySelector(`.tcard[data-cid="${cid}"]`)?.scrollIntoView({ block: 'center' });
+  };
+  document.addEventListener('touchmove', onTouch, { passive: false });
+  document.addEventListener('mousemove', onMouse);
+  document.addEventListener('touchend', end); document.addEventListener('touchcancel', end); document.addEventListener('mouseup', end);
+  drag.raf = requestAnimationFrame(tick);
 }
 
 // 会場タグを最大2行に収める（はみ出す分は「その他」から選べる）

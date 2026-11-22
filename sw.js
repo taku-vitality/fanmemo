@@ -1,5 +1,5 @@
 // オフラインでも起動できるよう、アプリ本体とライブラリを端末に保存する
-const CACHE = 'fanmemo-v2';
+const CACHE = 'fanmemo-v3';
 const SHELL = ['./', './index.html', './manifest.json', './firebase-config.js', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
